@@ -28,9 +28,15 @@ export const AdminLoginView: React.FC = () => {
         setError('Acesso negado. Apenas o administrador pode acessar este painel.');
         await auth.signOut();
       }
-    } catch (err) {
-      console.error("Login Error: ", err);
-      setError('Erro ao realizar login. Tente novamente.');
+    } catch (err: any) {
+      console.error("Login Error Details: ", err);
+      if (err.code === 'auth/unauthorized-domain') {
+        setError('Este domínio não está autorizado no Firebase. Adicione o domínio atual nas configurações do Firebase Console.');
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.');
+      } else {
+        setError('Erro ao realizar login. Verifique se o domínio está autorizado no Firebase Console.');
+      }
     } finally {
       setIsLoading(false);
     }

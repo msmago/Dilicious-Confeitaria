@@ -27,11 +27,12 @@ async function testConnection() {
   try {
     // Attempt to get a dummy document to test connection
     await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration. The client is offline.");
+    console.log("Firebase connection successful.");
+  } catch (error: any) {
+    console.error("Firebase Connection Error:", error);
+    if (error?.message?.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration. The client is offline. This often means the Project ID or API Key is incorrect, or the database is not provisioned.");
     }
-    // Skip logging for other errors, as this is simply a connection test.
   }
 }
 
