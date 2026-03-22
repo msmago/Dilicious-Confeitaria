@@ -6,19 +6,12 @@ import { getStorage } from 'firebase/storage';
 // Import the Firebase configuration
 import firebaseConfig from '../firebase-applet-config.json';
 
-// Firebase configuration with environment variable support for Vercel
-const finalConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfig.appId,
-};
-
 // Initialize Firebase SDK
-const app = initializeApp(finalConfig);
-export const db = getFirestore(app, (import.meta.env.VITE_FIREBASE_DATABASE_ID || firebaseConfig.firestoreDatabaseId) || '(default)');
+const app = initializeApp(firebaseConfig);
+
+// Use the provided database ID if available, otherwise fallback to (default)
+const databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
+export const db = getFirestore(app, databaseId);
 export const auth = getAuth();
 export const storage = getStorage(app);
 
@@ -31,7 +24,7 @@ async function testConnection() {
   } catch (error: any) {
     console.error("Firebase Connection Error:", error);
     if (error?.message?.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration. The client is offline. This often means the Project ID or API Key is incorrect, or the database is not provisioned.");
+      console.error("Please check your Firebase configuration. The client is offline.");
     }
   }
 }
