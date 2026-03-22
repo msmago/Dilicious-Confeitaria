@@ -1,0 +1,141 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: products
+    // Document ID: productId
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required, 1-100 chars)
+    //   - description: string (required, 1-500 chars)
+    //   - price: number (required, > 0)
+    //   - category: string (required)
+    //   - image: string (required, valid URL)
+    //   - active: bool (required)
+    //
+    // Collection: orders
+    // Document ID: orderId
+    // Fields:
+    //   - id: string (required)
+    //   - customerName: string (required, 1-100 chars)
+    //   - phone: string (required, 10-20 chars)
+    //   - deliveryType: string (required, ['Retirada', 'Entrega'])
+    //   - address: map (optional)
+    //   - preferredDate: string (required)
+    //   - preferredTime: string (required, ['manhã', 'tarde', 'noite'])
+    //   - items: list (required, max 50 items)
+    //   - subtotal: number (required, >= 0)
+    //   - deliveryFee: number (required, >= 0)
+    //   - total: number (required, >= 0)
+    //   - status: string (required, ['Novo', 'Em Produção', 'Pronto', 'Entregue'])
+    //   - reservationPaid: bool (required)
+    //   - totalPaid: bool (required)
+    //   - createdAt: string (required, ISO 8601)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+          (request.auth.token.email == "lumariscontato@gmail.com" && 
+           request.auth.token.email_verified == true)
+        );
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*") || url.matches("^/uploads/.*"));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}.*");
+    }
+
+    function hasOnlyAllowedFields(data, allowedFields) {
+      return data.keys().hasOnly(allowedFields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidProduct(data) {
+      let allowedFields = ['id', 'name', 'description', 'price', 'category', 'image', 'active'];
+      return hasOnlyAllowedFields(data, allowedFields) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.description is string && data.description.size() > 0 && data.description.size() <= 500 &&
+             data.price is number && data.price > 0 &&
+             data.category is string &&
+             isValidUrl(data.image) &&
+             data.active is bool;
+    }
+
+    function isValidOrder(data) {
+      let allowedFields = [
+        'id', 'customerName', 'phone', 'deliveryType', 'address', 
+        'preferredDate', 'preferredTime', 'observations', 'items', 
+        'subtotal', 'deliveryFee', 'total', 'status', 
+        'reservationPaid', 'totalPaid', 'createdAt'
+      ];
+      return hasOnlyAllowedFields(data, allowedFields) &&
+             data.id is string &&
+             data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 100 &&
+             data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 20 &&
+             data.deliveryType in ['Retirada', 'Entrega'] &&
+             data.preferredDate is string &&
+             data.preferredTime in ['manhã', 'tarde', 'noite'] &&
+             data.items is list && data.items.size() > 0 && data.items.size() <= 50 &&
+             data.subtotal is number && data.subtotal >= 0 &&
+             data.deliveryFee is number && data.deliveryFee >= 0 &&
+             data.total is number && data.total >= 0 &&
+             data.status in ['Novo', 'Em Produção', 'Pronto', 'Entregue'] &&
+             data.reservationPaid is bool &&
+             data.totalPaid is bool &&
+             data.createdAt is string &&
+             (!('address' in data) || data.address is map) &&
+             (!('observations' in data) || data.observations is string);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /products/{productId} {
+      allow read: if true; // Publicly readable for the menu
+      allow create, update: if isAdmin() && isValidProduct(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow create: if isValidOrder(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAdmin();
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

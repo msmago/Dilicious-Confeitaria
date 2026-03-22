@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A product in the confectionery catalog.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "name", "description", "price", "category", "image", "active"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A customer order.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "deliveryType": { "type": "string", "enum": ["Retirada", "Entrega"] },
+        "address": {
+          "type": "object",
+          "properties": {
+            "street": { "type": "string" },
+            "number": { "type": "string" },
+            "neighborhood": { "type": "string" },
+            "complement": { "type": "string" }
+          }
+        },
+        "preferredDate": { "type": "string" },
+        "preferredTime": { "type": "string", "enum": ["manhã", "tarde", "noite"] },
+        "observations": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "price": { "type": "number" },
+              "quantity": { "type": "integer" }
+            }
+          }
+        },
+        "subtotal": { "type": "number" },
+        "deliveryFee": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["Novo", "Em Produção", "Pronto", "Entregue"] },
+        "reservationPaid": { "type": "boolean" },
+        "totalPaid": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "customerName", "phone", "deliveryType", "preferredDate", "preferredTime", "items", "subtotal", "deliveryFee", "total", "status", "reservationPaid", "totalPaid", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products available in the catalog."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of customer orders."
+    }
+  }
+}
